@@ -1,0 +1,12 @@
+.navbar {
+  padding: var(--mantine-spacing-md);
+  display: flex;
+}
+
+.navbarMain {
+  flex: 1;
+}
+
+.navLink {
+  border-radius: var(--mantine-radius-sm);
+}
