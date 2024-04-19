@@ -5,94 +5,130 @@ import { redirect } from "next/navigation";
 import { Argon2id } from "oslo/password";
 import { lucia, validateRequest } from "@/utils/auth";
 import { cookies } from "next/headers";
+import { loginSchema, registerSchema } from "@/lib/zod-validation";
+import { Error } from "@/types";
 
-interface ActionResult {
-  error: string;
+export interface ActionResult {
+  state: string;
+  error: Error[] | any;
 }
 
 export async function register(
   prevState: any,
   formData: FormData
 ): Promise<ActionResult> {
-  const password = formData.get("password");
-
-  if (typeof password !== "string") {
-    return { error: "Invalid password" };
-  }
-  const hashedPassword = await new Argon2id().hash(password);
-
-  try {
-    await connectMongo();
-
-    const user = await User.create({
-      name: formData.get("name"),
-      username: formData.get("username"),
-      email: formData.get("email"),
-      hashed_password: hashedPassword,
-      type: "client",
-    });
-
-    const session = await lucia.createSession(user._id, {});
-    const sessionCookie = lucia.createSessionCookie(session.id);
-    cookies().set(
-      sessionCookie.name,
-      sessionCookie.value,
-      sessionCookie.attributes
-    );
-  } catch (error) {
-    console.log(error);
+  const validation = registerSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    username: formData.get("username"),
+    password: formData.get("password"),
+    confirm_password: formData.get("confirm_password"),
+  });
+  if (validation.success) {
+    const hashedPassword = await new Argon2id().hash(validation.data.password);
+    try {
+      await connectMongo();
+      const existingUser = await User.findOne({
+        username: validation.data.username,
+      });
+      if (existingUser) {
+        return {
+          state: "register_error",
+          error: "Username is not available.",
+        };
+      }
+      const user = await User.create({
+        name: validation.data.name,
+        username: validation.data.username,
+        email: validation.data.email,
+        hashed_password: hashedPassword,
+        type: "client",
+      });
+      const session = await lucia.createSession(user._id, {});
+      const sessionCookie = lucia.createSessionCookie(session.id);
+      cookies().set(
+        sessionCookie.name,
+        sessionCookie.value,
+        sessionCookie.attributes
+      );
+    } catch (error) {
+      console.log(error);
+      return {
+        state: "register_error",
+        error: "There is a problem creating your account.",
+      };
+    }
+    return redirect("/dashboard");
+  } else {
+    const issues = validation.error.issues;
     return {
-      error: "There is problem",
+      state: "validation_error",
+      error: issues,
     };
   }
-
-  return redirect("/dashboard");
 }
 
+// LOGIN ACTION
 export async function login(
   prevState: any,
   formData: FormData
 ): Promise<ActionResult> {
-  const username = formData.get("username");
-  const password = formData.get("password");
+  const validation = loginSchema.safeParse({
+    username: formData.get("username"),
+    password: formData.get("password"),
+  });
 
-  // you can use zod or any other library to validate the formData
+  if (validation.success) {
+    await connectMongo();
+    const existingUser = await User.findOne({
+      username: validation.data.username,
+    });
 
-  if (typeof username !== "string") {
-    return { error: "Not valid" };
-  }
+    if (existingUser) {
+      // Validate password.
+      const validPassword = await new Argon2id().verify(
+        existingUser.hashed_password,
+        validation.data.password
+      );
 
-  await connectMongo();
-  const existingUser = await User.findOne({ username: username });
+      // Show show error.
+      if (!validPassword) {
+        return {
+          state: "account_error",
+          error: "Incorrect username or password",
+        };
+      }
 
-  if (typeof password !== "string") {
-    return { error: "No password" };
-  }
-
-  const validPassword = await new Argon2id().verify(
-    existingUser.hashed_password,
-    password
-  );
-  if (!validPassword) {
+      // Create session.
+      const session = await lucia.createSession(existingUser._id, {});
+      const sessionCookie = lucia.createSessionCookie(session.id);
+      cookies().set(
+        sessionCookie.name,
+        sessionCookie.value,
+        sessionCookie.attributes
+      );
+      return redirect("/dashboard");
+    } else {
+      return {
+        state: "no_account",
+        error: "No credentials found.",
+      };
+    }
+  } else {
+    const issues = validation.error.issues;
     return {
-      error: "Incorrect username or password",
+      state: "validation_error",
+      error: issues,
     };
   }
-
-  const session = await lucia.createSession(existingUser._id, {});
-  const sessionCookie = lucia.createSessionCookie(session.id);
-  cookies().set(
-    sessionCookie.name,
-    sessionCookie.value,
-    sessionCookie.attributes
-  );
-  return redirect("/dashboard");
 }
 
+// LOGOUT ACTION
 export async function logout(): Promise<ActionResult> {
   const { session } = await validateRequest();
   if (!session) {
     return {
+      state: "error",
       error: "Unauthorized",
     };
   }
@@ -105,5 +141,6 @@ export async function logout(): Promise<ActionResult> {
     sessionCookie.value,
     sessionCookie.attributes
   );
+
   return redirect("/login");
 }
