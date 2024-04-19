@@ -8,3 +8,13 @@ export interface NavTypes {
     Omit<IconProps, "ref"> & React.RefAttributes<Icon>
   >;
 }
+
+export interface Error {
+  code: string;
+  minimum: number;
+  type: string;
+  inclusive: boolean;
+  exact: boolean;
+  message: string;
+  path: Array<string>;
+}
