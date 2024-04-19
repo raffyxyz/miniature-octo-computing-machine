@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useFormState } from "react-dom";
 import { useFormStatus } from "react-dom";
@@ -13,7 +14,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { IconLock, IconAt } from "@tabler/icons-react";
-import Link from "next/link";
+import { hasValidationError } from "@/utils/validationHelper";
 
 export const LoginForm = () => {
   const [state, formAction] = useFormState(login, {
@@ -39,7 +40,8 @@ export const LoginForm = () => {
           placeholder="Username"
           name="username"
           error={
-            state?.state === "validation_error" && state?.error[0]?.message
+            state.state === "validation_error" &&
+            hasValidationError(state?.error, "username")?.message
           }
         />
         <PasswordInput
@@ -47,7 +49,8 @@ export const LoginForm = () => {
           placeholder="Password"
           name="password"
           error={
-            state?.state === "validation_error" && state?.error[1]?.message
+            state.state === "validation_error" &&
+            hasValidationError(state?.error, "password")?.message
           }
         />
         <SubmitButton />
