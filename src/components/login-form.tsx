@@ -1,5 +1,7 @@
 "use client";
+import { useEffect } from "react";
 import { useFormState } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { login } from "@/actions/auth-actions";
 import {
   TextInput,
@@ -9,11 +11,25 @@ import {
   Button,
   rem,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconLock, IconAt } from "@tabler/icons-react";
 import Link from "next/link";
 
 export const LoginForm = () => {
-  const [state, formAction] = useFormState(login, { error: "" });
+  const [state, formAction] = useFormState(login, {
+    state: "",
+    error: "",
+  });
+
+  useEffect(() => {
+    if (state.state === "account_error" || state.state === "no_account") {
+      notifications.show({
+        color: "yellow",
+        title: "Account Error",
+        message: state.error,
+      });
+    }
+  }, [state]);
 
   return (
     <form action={formAction}>
@@ -22,13 +38,19 @@ export const LoginForm = () => {
           leftSection={<IconAt style={{ width: rem(16), height: rem(16) }} />}
           placeholder="Username"
           name="username"
+          error={
+            state?.state === "validation_error" && state?.error[0]?.message
+          }
         />
         <PasswordInput
           leftSection={<IconLock style={{ width: rem(16), height: rem(16) }} />}
           placeholder="Password"
           name="password"
+          error={
+            state?.state === "validation_error" && state?.error[1]?.message
+          }
         />
-        <Button type="submit">Login</Button>
+        <SubmitButton />
         <Text fz={rem(14)} ta="center">
           Don&apos;t have an account?{" "}
           <Text href="/register" component={Link} fz={rem(14)}>
@@ -39,3 +61,12 @@ export const LoginForm = () => {
     </form>
   );
 };
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" loading={pending}>
+      Login
+    </Button>
+  );
+}
