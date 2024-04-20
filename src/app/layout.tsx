@@ -24,7 +24,7 @@ export default function RootLayout({
         <ColorSchemeScript />
       </head>
       <body className={workSans.className}>
-        <MantineProvider>
+        <MantineProvider defaultColorScheme="light">
           <Notifications />
           {children}
         </MantineProvider>
