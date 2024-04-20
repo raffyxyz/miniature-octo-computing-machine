@@ -5,11 +5,12 @@ import { IconLogout, IconSettings, IconUser } from "@tabler/icons-react";
 
 import styles from "./index.module.css";
 import { logout } from "@/actions/auth-actions";
+import ThemeSwitch from "./theme-switch";
 
 export const UserMenu = () => {
   return (
     <UnstyledButton className={styles.user}>
-      <Menu trigger="hover" shadow="md" width={200} withArrow>
+      <Menu trigger="hover" shadow="md" width={150} withArrow>
         <Menu.Target>
           <Avatar
             src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/avatars/avatar-8.png"
@@ -17,16 +18,17 @@ export const UserMenu = () => {
           />
         </Menu.Target>
         <Menu.Dropdown>
+          <ThemeSwitch />
           <Menu.Item
             leftSection={
-              <IconUser style={{ width: rem(14), height: rem(14) }} />
+              <IconUser style={{ width: rem(15), height: rem(15) }} />
             }
           >
             Account
           </Menu.Item>
           <Menu.Item
             leftSection={
-              <IconSettings style={{ width: rem(14), height: rem(14) }} />
+              <IconSettings style={{ width: rem(15), height: rem(15) }} />
             }
           >
             Settings
@@ -34,7 +36,7 @@ export const UserMenu = () => {
           <form action={logout}>
             <Menu.Item
               leftSection={
-                <IconLogout style={{ width: rem(14), height: rem(14) }} />
+                <IconLogout style={{ width: rem(15), height: rem(15) }} />
               }
               component="button"
               type="submit"
